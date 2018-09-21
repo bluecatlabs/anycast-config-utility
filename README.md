@@ -1,4 +1,4 @@
-![BlueCat Certified](images/BlueCat Certified@4x.png "BlueCat Certified")
+![BlueCat Certified](images/BlueCatCertified@4x.png "BlueCat Certified")
 
 # BlueCat DNS Edge Anycast Configuration Utility
 The DNS Edge Anycast Configuration Utility is designed to help you configure  service points to be added to an Anycast pool.
