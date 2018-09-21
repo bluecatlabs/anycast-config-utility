@@ -21,7 +21,7 @@ The DNS Edge Anycast Configuration Utility is designed to help you configure  se
 The Anycast Configuration Utility is tested and compatible with DNS Edge service points running DNS Edge v2018.9. If a new version of the configuration utility is required for future releases of DNS Edge, it will be noted in the DNS Edge release notes.
 
 ## Clone the repo and run the configuration utility
-1. Clone the anycast-cli-tool repository.
+1. Clone the anycast-config-utility repository.
 2. On a computer that can access the service point IP (port 443), and that is running Python 3, connect to the configuration utility by running any of the commands below.
 4. When prompted to save your user credentials and the service point hostname and IP, type Y. A Base64-encoded file named *.script_config* is created in the same location as the anycast_config.py script. This file stores the user information, including the credentials.  
 
