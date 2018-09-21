@@ -13,24 +13,23 @@ The DNS Edge Anycast Configuration Utility is designed to help you configure  se
     - six==1.11.0
     - urllib3==1.23  
 
-  Refer to docs.python.org for more information.
+  Refer to [docs.python.org](http://docs.python.org) for more information.
 - This computer should also have access to the service point IP on port 443.
-- Your  user account must have administrative access.
+- Log in to the utility using your DNS Edge user ID and password. Your user account must have administrative access.
 
 ## DNS Edge version compatibility
 The Anycast Configuration Utility is tested and compatible with DNS Edge service points running DNS Edge v2018.9. If a new version of the configuration utility is required for future releases of DNS Edge, it will be noted in the DNS Edge release notes.
 
-## Download and run the configuration utility
-1. Download anycast_config.py.
-2. Extract the configuration files on a computer that can access the service point IP (port 443), and that is running Python 3.
-3. Connect to the configuration utility by running any of the commands below.
+## Clone the repo and run the configuration utility
+1. Clone the anycast-cli-tool repository.
+2. On a computer that can access the service point IP (port 443), and that is running Python 3, connect to the configuration utility by running any of the commands below.
 4. When prompted to save your user credentials and the service point hostname and IP, type Y. A Base64-encoded file named *.script_config* is created in the same location as the anycast_config.py script. This file stores the user information, including the credentials.  
 
-    When you no longer need to use the utility, BlueCat recommends that you delete this file.
+    When you no longer need to use the utility, BlueCat recommends that you delete the .script_config file.
 
     If you need to change your user credentials or connect to a different service point, rename or delete .script_config and restart the configuration utility.  
 
-5. Enter your user name and password, and the service point hostname or IP address when prompted. Your account must have administrative access.
+5. Enter your DNS Edge user name and password, and the service point hostname or IP address when prompted. Your account must have administrative access.
 
 ## Staging and applying daemon configurations
 
@@ -46,7 +45,7 @@ The Anycast Configuration Utility is tested and compatible with DNS Edge service
 
 #### Staging and applying configuration files
 
-1. If required, set Anycast loopback interfaces. The set_loopbacks command will override all configured loopback IP addresses. A maximum of 255 loopback IPv4 addresses are allowed. Loopback IPs must be specified in a /32 CIDR notation.
+1. If required, set Anycast loopback interfaces. The set_loopbacks command will override all configured loopback IP addresses. A maximum of 255 loopback IPv4 addresses are allowed. Loopback IPs must be specified in a /32 CIDR notation. IPv6 is not supported.
  - To set loopbacks:  
     `anycast_config.py set_loopbacks x.x.x.x/32 y.y.y.y/32 z.z.z.z/32`
  - To show the configured loopbacks:  
@@ -73,8 +72,8 @@ The Anycast Configuration Utility is tested and compatible with DNS Edge service
 
     `anycast_config.py show_run_conf <daemon> <file.conf>`  
 	  `anycast_config.py no_run_conf <daemon> <file.conf>`
-5. To pause, start, or show running daemons, use the following commands:  
-    `anycast_config.py pause <daemon>`
+5. To stop, start, or show running daemons, use the following commands:  
+    `anycast_config.py pause <daemon>` (stops the daemon)
 
      For example: `anycast_config.py pause bgpd`
 
@@ -83,7 +82,7 @@ The Anycast Configuration Utility is tested and compatible with DNS Edge service
 
 #### Example
 The commands in the following example show the following steps:
-1. Configure Anycast loopbacks 1.1.1.0/32.
+1. Configure Anycast loopbacks 192.168.68.47/32.
 2. Stage the zebra.conf, then the bgpd.conf, then the ospfd.conf files.  
  - In this example, the .conf files are in a different location from the anycast_config.py script.  
  - Note that Windows users should use backslashes in the file path, and Mac users should use forward slashes.  
@@ -91,10 +90,13 @@ The commands in the following example show the following steps:
 4. Retrieve the contents of each of the daemon configuration files.
 
 ````
-    anycast_config.py set_loopbacks 1.1.1.0/32
-    anycast_config.py set_staged_conf zebra c:\users\username\zebra.conf
-    anycast_config.py set_staged_conf bpgd c:\users\username\bgpd.conf
-    anycast_config.py set_staged_conf ospfd c:\users\username\ospfd.conf
+    anycast_config.py set_loopbacks 192.168.68.47/32
+    anycast_config.py set_staged_conf zebra
+    /home/abc/zebra.conf
+    anycast_config.py set_staged_conf bpgd
+    /home/abc/bgpd.conf
+    anycast_config.py set_staged_conf ospfd
+    /home/abc/ospfd.conf
     anycast_config.py apply
     anycast_config.py show_run_conf zebra
     anycast_config.py show_run_conf bgpd
@@ -110,18 +112,18 @@ The commands in the following example show the following steps:
 
     The available options are:
 
-Daemon	| Option | Retrieves
- --- | --- | ---
- zebra | zebraSummary |	zebra client summary
- | routes	|  IP route
- | interfaces | network loopback interfaces
- | runningConfig | running configuration
- bgpd | bgpSummary | IP bgpd summary
- | bgpNeighbors | IP bgpd neighbors
-ospfd | ospfNeighbors	|IP ospfd neighbors
- | ospfRoutes | IP ospfd route
- | ospfRouterInfo | IP ospfd router info
- | ospfDatabase | IP ospfd database
+Relevant daemon	| Option | Internally wrapped command
+ --- | --- | --- | ---
+ Zebra |	zebraSummary | show zebra client summary
+ |routes| show ip route
+ | interfaces | show interface
+ | runningConfig | show running-config
+ BGP |bgpSummary | show ip bgp summary
+ |bgpNeighbors | show ip bgp neighbors
+OSPF |ospfNeighbors	|show ip ospf neighbors
+ |ospfRoutes | show ip ospf route
+ | ospfRouterInfo | show ip ospf router info
+ | ospfDatabase | show ip ospf database
 
 ## License
 
