@@ -112,18 +112,18 @@ The commands in the following example show the following steps:
 
     The available options are:
 
-Relevant daemon	| Option | Internally wrapped command
- --- | --- | --- | ---
- Zebra |	zebraSummary | show zebra client summary
- |routes| show ip route
- | interfaces | show interface
- | runningConfig | show running-config
- BGP |bgpSummary | show ip bgp summary
- |bgpNeighbors | show ip bgp neighbors
-OSPF |ospfNeighbors	|show ip ospf neighbors
- |ospfRoutes | show ip ospf route
- | ospfRouterInfo | show ip ospf router info
- | ospfDatabase | show ip ospf database
+| Relevant daemon	| Option | Internally wrapped command |
+| --- | --- | --- |
+| Zebra |	zebraSummary | show zebra client summary |
+| |routes| show ip route |
+| | interfaces | show interface |
+| | runningConfig | show running-config |
+| BGP |bgpSummary | show ip bgp summary |
+| |bgpNeighbors | show ip bgp neighbors |
+| OSPF |ospfNeighbors	|show ip ospf neighbors |
+| |ospfRoutes | show ip ospf route |
+| | ospfRouterInfo | show ip ospf router info |
+| | ospfDatabase | show ip ospf database |
 
 ## License
 
