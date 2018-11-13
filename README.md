@@ -9,7 +9,7 @@ The DNS Edge Anycast Configuration Utility is designed to help you configure  se
     - chardet==3.0.4
     - future==0.16.0
     - idna==2.7
-    - requests==2.19.1
+    - requests==2.20.0
     - six==1.11.0
     - urllib3==1.23  
 
