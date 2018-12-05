@@ -4,7 +4,7 @@
 The DNS Edge Anycast Configuration Utility is designed to help you configure  service points to be added to an Anycast pool.
 
 ## Before you begin
-- On the computer you use to run the configuration utility, ensure that you are running Python 3. In addition, the following Python libraries must be installed:
+- On the computer you use to run the configuration utility, ensure that you are running Python 3.6.5 or higher. In addition, the following Python libraries must be installed:
     - certifi==2018.8.24
     - chardet==3.0.4
     - future==0.16.0
