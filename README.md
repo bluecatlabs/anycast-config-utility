@@ -11,7 +11,7 @@ The DNS Edge Anycast Configuration Utility is designed to help you configure  se
     - idna==2.7
     - requests==2.21.0
     - six==1.11.0
-    - urllib3==1.24  
+    - urllib3==1.24.3  
 
   Refer to [docs.python.org](http://docs.python.org) for more information.
 - This computer should also have access to the service point IP on port 443.
