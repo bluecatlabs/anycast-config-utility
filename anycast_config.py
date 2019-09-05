@@ -10,9 +10,11 @@ import os.path
 import sys
 from argparse import ArgumentParser
 from http import HTTPStatus
-from requests.auth import HTTPBasicAuth
-import requests
+
 import urllib3
+
+import requests
+from requests.auth import HTTPBasicAuth
 
 urllib3.disable_warnings()
 
@@ -197,8 +199,8 @@ NETWORKING_ENDPOINT = 'https://{}:{}/v1/routing/networking/configuration/'
 def get_input(input_name):
     return input(input_name + ':')
 
-def get_password():
-    return getpass.getpass('Password:')
+def get_secret_key():
+    return getpass.getpass('Secret Access Key:')
 
 def write_script_config(content):
     try:
@@ -227,7 +229,7 @@ def get_file_contents(filename):
     except IOError as e:
         raise e
 
-def get_existing_daemons_file(user, password, service_point_ip, port):
+def get_existing_daemons_file(client_id, secret_key, service_point_ip, port):
     """Retrieves the appropriate daemons file contents.
     Returns an existing daemons file if there is one, checking for staged first.
     If neither exist, it returns a file with all daemons disabled.
@@ -236,7 +238,7 @@ def get_existing_daemons_file(user, password, service_point_ip, port):
     try:
         staged_daemons_file_response = requests.get(
             DAEMONS_STAGED_ENDPOINT.format(service_point_ip, port),
-            auth=HTTPBasicAuth(user, password),
+            auth=HTTPBasicAuth(client_id, secret_key),
             verify=False)
 
         if staged_daemons_file_response.status_code == HTTPStatus.OK:
@@ -244,7 +246,7 @@ def get_existing_daemons_file(user, password, service_point_ip, port):
 
         running_daemons_file_response = requests.get(
             DAEMONS_RUNNING_ENDPOINT.format(service_point_ip, port),
-            auth=HTTPBasicAuth(user, password),
+            auth=HTTPBasicAuth(client_id, secret_key),
             verify=False)
 
         if running_daemons_file_response.status_code == HTTPStatus.OK:
@@ -254,13 +256,13 @@ def get_existing_daemons_file(user, password, service_point_ip, port):
 
     return 'zebra=no\nospfd=no\nbgpd=no'
 
-def generate_daemons_file(user, password, service_point_ip, port, daemon, disable):
+def generate_daemons_file(client_id, secret_key, service_point_ip, port, daemon, disable):
     """Generate the contents of a daemons file.
     This behaviour depends on the existing one and the given daemon to activate/deactivate as per the disable flag.
     This will check the staged file before the running one and then a default (all daemons set to no).
     """
     try:
-        daemons_file_content = get_existing_daemons_file(user, password, service_point_ip, port)
+        daemons_file_content = get_existing_daemons_file(client_id, secret_key, service_point_ip, port)
         if not daemons_file_content.strip():
             daemons_file_content = 'zebra=no\nospfd=no\nbgpd=no'
         return daemons_file_content.replace(daemon+'=yes', daemon+'=no') if disable \
@@ -268,24 +270,24 @@ def generate_daemons_file(user, password, service_point_ip, port, daemon, disabl
     except (ConnectionError, TimeoutError) as e:
         raise e
 
-def send_get(url, user, password):
-    return requests.get(url, auth=HTTPBasicAuth(user, password), verify=False)
+def send_get(url, client_id, secret_key):
+    return requests.get(url, auth=HTTPBasicAuth(client_id, secret_key), verify=False)
 
-def send_put(url, user, password, content):
-    return requests.put(url, auth=HTTPBasicAuth(user, password), verify=False, data=content)
+def send_put(url, client_id, secret_key, content):
+    return requests.put(url, auth=HTTPBasicAuth(client_id, secret_key), verify=False, data=content)
 
-def send_post(url, user, password, content):
-    return requests.post(url, auth=HTTPBasicAuth(user, password), verify=False, data=content)
+def send_post(url, client_id, secret_key, content):
+    return requests.post(url, auth=HTTPBasicAuth(client_id, secret_key), verify=False, data=content)
 
-def send_delete(url, user, password):
-    return requests.delete(url, auth=HTTPBasicAuth(user, password), verify=False)
+def send_delete(url, client_id, secret_key):
+    return requests.delete(url, auth=HTTPBasicAuth(client_id, secret_key), verify=False)
 
-def send_apply_call(user, password, service_point_ip, port):
-    return send_post(APPLY_ENDPOINT.format(service_point_ip, port), user, password, '')
+def send_apply_call(client_id, secret_key, service_point_ip, port):
+    return send_post(APPLY_ENDPOINT.format(service_point_ip, port), client_id, secret_key, '')
 
-def stage_daemons_file(daemon, disable, user, password, service_point_ip, port):
-    daemons_file_content = generate_daemons_file(user, password, service_point_ip, port, daemon, disable)
-    return send_put(DAEMONS_STAGED_ENDPOINT.format(service_point_ip, port), user, password, daemons_file_content)
+def stage_daemons_file(daemon, disable, client_id, secret_key, service_point_ip, port):
+    daemons_file_content = generate_daemons_file(client_id, secret_key, service_point_ip, port, daemon, disable)
+    return send_put(DAEMONS_STAGED_ENDPOINT.format(service_point_ip, port), client_id, secret_key, daemons_file_content)
 
 def handle_api_response(response, suppress, text_handling_func=None):
     """Handles the output from API calls.  If a text_handling_func is given, it uses that to parse the response text,
@@ -293,7 +295,7 @@ def handle_api_response(response, suppress, text_handling_func=None):
     if response.status_code == HTTPStatus.NO_CONTENT or response.status_code == HTTPStatus.OK:
         if not suppress:
             print('Success.')
-            if response.text != None:
+            if response.text is not None:
                 if text_handling_func is None:
                     print(response.text)
                 else:
@@ -316,117 +318,117 @@ def authenticate(func):
     def wrapper(*args, **kwargs):
         if not os.path.exists('.script_config') or not os.path.isfile('.script_config'):
             save_creds = get_input('Save credentials and service point hostname/IP to .script_config? [y/n]')
-            user = get_input('Username')
-            password = get_password()
+            client_id = get_input('Client ID')
+            secret_key = get_secret_key()
             service_point_ip = get_input('Service Point Hostname/IP')
             port = get_input('Port (default 443)')
             if not port.strip():
                 port = DEFAULT_HTTPS_PORT
             if save_creds == 'y':
-                write_script_config(user + '\n' + password + '\n' + service_point_ip + '\n' + str(port))
-            return func(*args, **kwargs, user=user, password=password, service_point_ip=service_point_ip, port=port)
+                write_script_config(client_id + '\n' + secret_key + '\n' + service_point_ip + '\n' + str(port))
+            return func(*args, **kwargs, client_id=client_id, secret_key=secret_key, service_point_ip=service_point_ip, port=port)
         else:
-            user, password, service_point_ip, port = extract_credentials()
-            return func(*args, **kwargs, user=user, password=password, service_point_ip=service_point_ip, port=port)
+            client_id, secret_key, service_point_ip, port = extract_credentials()
+            return func(*args, **kwargs, client_id=client_id, secret_key=secret_key, service_point_ip=service_point_ip, port=port)
     return wrapper
 
 # Command logic
 
 @authenticate
-def do_pause_start_daemon(daemon, disable, user=None, password=None, service_point_ip=None, port=443):
+def do_pause_start_daemon(daemon, disable, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        stage_daemons_file(daemon, disable, user, password, service_point_ip, port), True)
+        stage_daemons_file(daemon, disable, client_id, secret_key, service_point_ip, port), True)
     handle_api_response(
-        send_apply_call(user, password, service_point_ip, port), False)
+        send_apply_call(client_id, secret_key, service_point_ip, port), False)
 
 @authenticate
-def do_show_daemons(user=None, password=None, service_point_ip=None, port=443):
+def do_show_daemons(client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(DAEMONS_RUNNING_ENDPOINT.format(service_point_ip, port), user, password), False)
+        send_get(DAEMONS_RUNNING_ENDPOINT.format(service_point_ip, port), client_id, secret_key), False)
 
 @authenticate
-def do_set_staged_conf(daemon, file, user=None, password=None, service_point_ip=None, port=443):
+def do_set_staged_conf(daemon, file, client_id=None, secret_key=None, service_point_ip=None, port=443):
     """Stage the given daemon's conf file while also adjusting and staging the daemons file accordingly."""
     contents = get_file_contents(file)
 
     handle_api_response(
-        stage_daemons_file(daemon, False, user, password, service_point_ip, port), True)
+        stage_daemons_file(daemon, False, client_id, secret_key, service_point_ip, port), True)
     handle_api_response(
-        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), user, password, contents), False)
+        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key, contents), False)
 
 @authenticate
-def do_show_staged_conf(daemon, user=None, password=None, service_point_ip=None, port=443):
+def do_show_staged_conf(daemon, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), user, password), False)
+        send_get(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key), False)
 
 @authenticate
-def do_no_staged_conf(daemon, user=None, password=None, service_point_ip=None, port=443):
+def do_no_staged_conf(daemon, client_id=None, secret_key=None, service_point_ip=None, port=443):
     """Unstage the given daemon's conf file while also adjusting and staging the daemons file accordingly."""
     handle_api_response(
-        stage_daemons_file(daemon, False, user, password, service_point_ip, port), True)
+        stage_daemons_file(daemon, False, client_id, secret_key, service_point_ip, port), True)
     handle_api_response(
-        send_delete(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), user, password), False)
+        send_delete(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key), False)
 
 @authenticate
-def do_apply(user=None, password=None, service_point_ip=None, port=443):
+def do_apply(client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_post(APPLY_ENDPOINT.format(service_point_ip, port), user, password, ''), False)
+        send_post(APPLY_ENDPOINT.format(service_point_ip, port), client_id, secret_key, ''), False)
 
 @authenticate
-def do_set_run_conf(daemon, file, user=None, password=None, service_point_ip=None, port=443):
+def do_set_run_conf(daemon, file, client_id=None, secret_key=None, service_point_ip=None, port=443):
     contents = get_file_contents(file)
 
     handle_api_response(
-        stage_daemons_file(daemon, False, user, password, service_point_ip, port), True)
+        stage_daemons_file(daemon, False, client_id, secret_key, service_point_ip, port), True)
     handle_api_response(
-        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), user, password, contents), True)
+        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key, contents), True)
     handle_api_response(
-        send_apply_call(user, password, service_point_ip, port), False)
+        send_apply_call(client_id, secret_key, service_point_ip, port), False)
 
 @authenticate
-def do_show_run_conf(daemon, user=None, password=None, service_point_ip=None, port=443):
+def do_show_run_conf(daemon, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(CONF_RUNNING_ENDPOINT.format(service_point_ip, port, daemon), user, password), False)
+        send_get(CONF_RUNNING_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key), False)
 
 @authenticate
-def do_no_run_conf(daemon, user=None, password=None, service_point_ip=None, port=443):
+def do_no_run_conf(daemon, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        stage_daemons_file(daemon, True, user, password, service_point_ip, port), True)
+        stage_daemons_file(daemon, True, client_id, secret_key, service_point_ip, port), True)
     handle_api_response(
-        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), user, password, ''), True)
+        send_put(CONF_STAGED_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key, ''), True)
     handle_api_response(
-        send_apply_call(user, password, service_point_ip, port), False)
+        send_apply_call(client_id, secret_key, service_point_ip, port), False)
 
 @authenticate
-def do_show_debug(option, user=None, password=None, service_point_ip=None, port=443):
+def do_show_debug(option, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(DEBUG_ENDPOINT.format(service_point_ip, port, 'option={}'.format(option)), user, password),
+        send_get(DEBUG_ENDPOINT.format(service_point_ip, port, 'option={}'.format(option)), client_id, secret_key),
         False,
         text_handling_func=handle_show_debug_output)
 
 @authenticate
-def do_show_logs(daemon, user=None, password=None, service_point_ip=None, port=443):
+def do_show_logs(daemon, client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(LOGS_ENDPOINT.format(service_point_ip, port, daemon), user, password), False)
+        send_get(LOGS_ENDPOINT.format(service_point_ip, port, daemon), client_id, secret_key), False)
 
 @authenticate
-def do_set_loopbacks(loopbacks, user=None, password=None, service_point_ip=None, port=443):
+def do_set_loopbacks(loopbacks, client_id=None, secret_key=None, service_point_ip=None, port=443):
     additional_loopbacks = {}
     additional_loopbacks['additionalLoopbacks'] = loopbacks
     handle_api_response(
-        send_put(NETWORKING_ENDPOINT.format(service_point_ip, port), user, password, json.dumps(additional_loopbacks)),
+        send_put(NETWORKING_ENDPOINT.format(service_point_ip, port), client_id, secret_key, json.dumps(additional_loopbacks)),
         False)
 
 @authenticate
-def do_show_loopbacks(user=None, password=None, service_point_ip=None, port=443):
+def do_show_loopbacks(client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_get(NETWORKING_ENDPOINT.format(service_point_ip, port), user, password),
+        send_get(NETWORKING_ENDPOINT.format(service_point_ip, port), client_id, secret_key),
         False)
 
 @authenticate
-def do_no_loopbacks(user=None, password=None, service_point_ip=None, port=443):
+def do_no_loopbacks(client_id=None, secret_key=None, service_point_ip=None, port=443):
     handle_api_response(
-        send_delete(NETWORKING_ENDPOINT.format(service_point_ip, port), user, password), False)
+        send_delete(NETWORKING_ENDPOINT.format(service_point_ip, port), client_id, secret_key), False)
 
 def main(args):
     try:
